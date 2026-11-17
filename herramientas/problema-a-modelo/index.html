@@ -1,0 +1,513 @@
+<title>Del Problema al Modelo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two-pane workbench, guided questions left, live model spec right (sticky on desktop, stacked on phone) */
+:root{
+  --bg:#f3f6f7; --surface:#ffffff; --ink:#13212a; --muted:#566874; --line:#d7e0e5;
+  --accent:#0c6670; --accent-ink:#ffffff; --accent-soft:#e0eff0;
+  --warn:#a8501a; --warn-soft:#fbeee4; --ok:#2b7445; --ok-soft:#e3f2e8;
+  --bad:#a63232;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1418; --surface:#152027; --ink:#e3ebef; --muted:#93a5b0; --line:#28363f;
+  --accent:#53b5bd; --accent-ink:#0b1a1d; --accent-soft:#17353a;
+  --warn:#e3965e; --warn-soft:#3a271a; --ok:#6fc28d; --ok-soft:#183223; --bad:#e57b7b;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e1418; --surface:#152027; --ink:#e3ebef; --muted:#93a5b0; --line:#28363f;
+  --accent:#53b5bd; --accent-ink:#0b1a1d; --accent-soft:#17353a;
+  --warn:#e3965e; --warn-soft:#3a271a; --ok:#6fc28d; --ok-soft:#183223; --bad:#e57b7b;
+  color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(28px,4vw,40px);font-weight:700;line-height:1.05}
+.lede{color:var(--muted);max-width:62ch;margin:6px 0 0}
+.examples{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.examples span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-right:4px}
+.chip{font:500 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 11px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label.card:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;align-items:start}
+@media (min-width:980px){.grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}.spec{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}}
+
+.form{display:flex;flex-direction:column;gap:18px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+legend{font-family:var(--f-display);font-weight:700;font-size:18px;padding:0;margin-bottom:10px;display:flex;gap:10px;align-items:baseline}
+legend b{font:500 12px var(--f-mono);color:var(--accent)}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.lbl{font-size:13px;font-weight:600}
+.hint{font-size:12.5px;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+label.card{position:relative;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;background:var(--bg)}
+label.card input{position:absolute;opacity:0;pointer-events:none}
+label.card strong{font-size:14px}
+label.card small{color:var(--muted);font-size:12px;line-height:1.35}
+label.card:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;width:100%}
+.seg label{flex:1;text-align:center;padding:7px 6px;font-size:13px;cursor:pointer;background:var(--bg);border-right:1px solid var(--line)}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+
+/* Spec */
+.spec{background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column}
+.spec-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:start}
+.spec-head .eyebrow{font:500 11.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.spec-head h2{font-size:22px;margin-top:2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 13px var(--f-body);border-radius:7px;padding:8px 12px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.formula{margin:0;padding:16px 20px;font-family:var(--f-display);font-size:19px;line-height:1.35;font-weight:500;border-bottom:1px solid var(--line)}
+.formula em{font-style:normal;background:var(--accent-soft);color:var(--ink);padding:0 4px;border-radius:4px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line)}
+.pill{font:500 12px var(--f-mono);padding:4px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);white-space:nowrap}
+.pill.type{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ready{padding:14px 20px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.score{font:700 30px var(--f-display);font-variant-numeric:tabular-nums;line-height:1}
+.score small{font:500 12px var(--f-mono);color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.ready p{margin:5px 0 0;font-size:13px;color:var(--muted)}
+.sections{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+@media (min-width:640px){.sections{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sec{padding:16px 20px;border-bottom:1px solid var(--line);min-width:0}
+@media (min-width:640px){.sec:nth-child(odd){border-right:1px solid var(--line)}.sec.wide{grid-column:1/-1;border-right:0}}
+.sec h3{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:8px}
+.sec ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.sec li{font-size:14px}
+.sec p{margin:0;font-size:14px}
+.sec .why{color:var(--muted);font-size:12.5px;margin-top:6px}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.feat div{min-width:0}
+.feat b{font-size:13px;display:block;margin-bottom:2px}
+.feat span{font-size:13px;color:var(--muted)}
+.risk{display:flex;gap:10px;align-items:flex-start;font-size:14px;padding:6px 0}
+.risk .sev{font:600 10.5px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;white-space:nowrap;margin-top:2px}
+.sev.alto{background:var(--warn-soft);color:var(--warn)}
+.sev.medio{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.value table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.value th,.value td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.value td.n{text-align:right;font-family:var(--f-mono)}
+.value th.n{text-align:right}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.tablewrap{overflow-x:auto}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px}
+pre.md{white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:0 20px 18px;max-height:260px;overflow:auto}
+footer{color:var(--muted);font-size:12.5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Del problema al modelo</h1>
+      <p class="lede">Describe un problema de negocio y responde unas preguntas. La ficha de la derecha lo traduce a un modelo predictivo: qué predecir, para quién, con qué métrica, contra qué modelo base y con qué riesgos.</p>
+    </div>
+    <div class="examples" id="examples"><span>Ejemplos</span></div>
+  </header>
+
+  <div class="grid">
+    <form class="form" id="form" autocomplete="off">
+      <div class="step"><fieldset>
+        <legend><b>1</b>El problema</legend>
+        <div class="field"><label for="titulo">Nombre del caso</label><input type="text" id="titulo" data-k="titulo"></div>
+        <div class="field"><label for="problema">¿Qué está pasando en el negocio?</label><textarea id="problema" data-k="problema"></textarea><span class="hint">El dolor en palabras de negocio, con una cifra si la tienes.</span></div>
+        <div class="field"><label for="decision">¿Qué decisión o acción se tomaría con la predicción?</label><input type="text" id="decision" data-k="decision"><span class="hint">Si nadie va a actuar distinto, no hace falta un modelo.</span></div>
+      </fieldset></div>
+
+      <div class="step"><fieldset>
+        <legend><b>2</b>La pregunta</legend>
+        <span class="lbl" id="tipo-lbl">¿Qué necesitas saber?</span>
+        <div class="types" role="radiogroup" aria-labelledby="tipo-lbl" id="types"></div>
+        <div class="row">
+          <div class="field"><label for="entidad">¿Sobre qué se predice? (unidad)</label><input type="text" id="entidad" data-k="entidad"><span class="hint">cliente, producto-tienda, transacción…</span></div>
+          <div class="field"><label for="objetivo">¿Qué se predice? (objetivo)</label><input type="text" id="objetivo" data-k="objetivo"></div>
+        </div>
+        <div class="row" id="horizon-row">
+          <div class="field"><label for="horizonte">Horizonte</label><input type="number" min="0" id="horizonte" data-k="horizonte"></div>
+          <div class="field"><label for="unidad">Unidad</label><select id="unidad" data-k="unidad"><option>minutos</option><option>horas</option><option>días</option><option>semanas</option><option>meses</option></select></div>
+        </div>
+      </fieldset></div>
+
+      <div class="step"><fieldset>
+        <legend><b>3</b>Los datos</legend>
+        <div class="field"><span class="lbl">¿Hay historia con el resultado ya conocido (etiquetas)?</span>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="etiquetas" value="si" data-k="etiquetas">Sí</label>
+            <label><input type="radio" name="etiquetas" value="parcial" data-k="etiquetas">Parcial</label>
+            <label><input type="radio" name="etiquetas" value="no" data-k="etiquetas">No</label>
+          </div></div>
+        <div class="row">
+          <div class="field"><label for="historia">Meses de historia</label><input type="number" min="0" id="historia" data-k="historia"></div>
+          <div class="field"><label for="filas">Registros aprox. (unidades × períodos)</label><input type="number" min="0" id="filas" data-k="filas"></div>
+        </div>
+        <div class="field" id="tasa-wrap"><label for="tasa">% de casos positivos (tasa base)</label><input type="number" min="0" max="100" step="0.1" id="tasa" data-k="tasa"><span class="hint">Ej.: 3 si cancelan 3 de cada 100 clientes en el horizonte.</span></div>
+      </fieldset></div>
+
+      <div class="step"><fieldset>
+        <legend><b>4</b>Restricciones y economía</legend>
+        <div class="field"><span class="lbl">¿Cuánto hay que explicar cada predicción?</span>
+          <div class="seg">
+            <label><input type="radio" name="interp" value="baja" data-k="interp">Poco</label>
+            <label><input type="radio" name="interp" value="media" data-k="interp">Algo</label>
+            <label><input type="radio" name="interp" value="alta" data-k="interp">Mucho / regulado</label>
+          </div></div>
+        <div class="field"><span class="lbl">¿Cuándo se necesita la predicción?</span>
+          <div class="seg">
+            <label><input type="radio" name="latencia" value="batch" data-k="latencia">En lote (diario/semanal)</label>
+            <label><input type="radio" name="latencia" value="real" data-k="latencia">En tiempo real</label>
+          </div></div>
+        <div id="eco">
+          <div class="row">
+            <div class="field"><label for="volumen">Unidades evaluadas por ciclo</label><input type="number" min="0" id="volumen" data-k="volumen"></div>
+            <div class="field"><label for="valor">Valor de acertar un positivo ($)</label><input type="number" min="0" id="valor" data-k="valor"></div>
+            <div class="field"><label for="costo">Costo de cada acción ($)</label><input type="number" min="0" id="costo" data-k="costo"></div>
+          </div>
+          <div class="field" style="margin-top:12px"><label for="lift">Lift esperado del modelo en el 10% priorizado: <b id="lift-out"></b></label>
+            <input type="range" min="1" max="8" step="0.5" id="lift" data-k="lift"><span class="hint">Cuántas veces más positivos hay en el 10% con mayor puntaje frente al azar. 2–4× es habitual en un primer modelo.</span></div>
+        </div>
+      </fieldset></div>
+    </form>
+
+    <article class="spec" aria-live="polite">
+      <div class="spec-head">
+        <div><div class="eyebrow">Ficha del modelo</div><h2 id="o-title"></h2></div>
+        <div class="actions">
+          <button class="btn" type="button" id="copy">Copiar en Markdown</button>
+          <button class="btn ghost" type="button" id="toggle-md" aria-expanded="false">Ver texto</button>
+        </div>
+      </div>
+      <pre class="md" id="md" hidden></pre>
+      <p class="formula" id="o-formula"></p>
+      <div class="meta" id="o-meta"></div>
+      <div class="ready">
+        <div class="score" id="o-score"></div>
+        <div><div class="bar"><i id="o-bar"></i></div><p id="o-ready"></p></div>
+      </div>
+      <div class="sections" id="o-sections"></div>
+    </article>
+  </div>
+  <footer>Las recomendaciones son reglas de partida de un científico de datos, no un veredicto. Tu borrador se guarda solo en este navegador.</footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const TYPES = {
+  binaria:   {name:"Clasificación binaria", q:"¿Ocurrirá o no?", ex:"¿Este cliente cancelará?", sup:true, eco:true, rate:true},
+  multiclase:{name:"Clasificación multiclase", q:"¿Cuál de varias categorías?", ex:"¿Qué motivo tiene este reclamo?", sup:true},
+  regresion: {name:"Regresión", q:"¿Cuánto será?", ex:"¿En cuántos días se entrega?", sup:true},
+  pronostico:{name:"Pronóstico de series de tiempo", q:"¿Cuánto en cada período futuro?", ex:"¿Cuántas unidades venderemos por semana?", sup:true, ts:true},
+  ranking:   {name:"Ranking / scoring", q:"¿A quién priorizo primero?", ex:"¿Qué leads llamar hoy?", sup:true, eco:true, rate:true},
+  anomalia:  {name:"Detección de anomalías", q:"¿Qué es raro o sospechoso?", ex:"¿Qué pagos revisar?", eco:true, rate:true},
+  segmentos: {name:"Segmentación (clustering)", q:"¿Qué grupos existen?", ex:"¿Qué tipos de clientes tenemos?"},
+  uplift:    {name:"Uplift / efecto causal", q:"¿Cambia el resultado si actúo?", ex:"¿A quién le sirve el descuento?", sup:true, eco:true, rate:true}
+};
+
+const EXAMPLES = {
+  "Fuga de clientes": {titulo:"Fuga de clientes en telecom", problema:"Cada mes cancela cerca del 3% de los clientes pospago y el equipo de retención llama sin priorizar.", decision:"ofrecer un beneficio de retención", tipo:"binaria", entidad:"cliente", objetivo:"cancele su contrato", horizonte:60, unidad:"días", etiquetas:"si", historia:36, filas:1800000, tasa:3, interp:"media", latencia:"batch", volumen:50000, valor:180, costo:15, lift:3.5},
+  "Demanda": {titulo:"Demanda semanal por tienda", problema:"Hay quiebres de stock en productos de alta rotación y sobrestock en otros; la reposición se decide a ojo.", decision:"definir el pedido de reposición", tipo:"pronostico", entidad:"producto-tienda", objetivo:"unidades vendidas", horizonte:4, unidad:"semanas", etiquetas:"si", historia:30, filas:2400000, tasa:0, interp:"media", latencia:"batch", volumen:20000, valor:0, costo:0, lift:2},
+  "Fraude": {titulo:"Fraude en pagos con tarjeta", problema:"Las pérdidas por fraude crecieron 40% este año y las reglas actuales bloquean demasiadas compras legítimas.", decision:"bloquear o pedir verificación del pago", tipo:"binaria", entidad:"transacción", objetivo:"sea fraudulenta", horizonte:0, unidad:"minutos", etiquetas:"parcial", historia:18, filas:40000000, tasa:0.2, interp:"alta", latencia:"real", volumen:2000000, valor:250, costo:4, lift:6},
+  "Leads": {titulo:"Priorización de leads B2B", problema:"Ventas recibe 3.000 leads al mes y solo puede contactar a un tercio; la conversión es 4%.", decision:"asignar el lead a un ejecutivo", tipo:"ranking", entidad:"lead", objetivo:"se convierta en venta", horizonte:30, unidad:"días", etiquetas:"si", historia:24, filas:70000, tasa:4, interp:"media", latencia:"batch", volumen:3000, valor:1200, costo:40, lift:3},
+  "Segmentos": {titulo:"Segmentos de clientes e-commerce", problema:"Marketing envía la misma campaña a todos y no entiende qué perfiles compran qué.", decision:"diseñar campañas por segmento", tipo:"segmentos", entidad:"cliente", objetivo:"hábitos de compra y navegación", horizonte:0, unidad:"días", etiquetas:"no", historia:24, filas:300000, tasa:0, interp:"alta", latencia:"batch", volumen:0, valor:0, costo:0, lift:2},
+  "Tiempo de entrega": {titulo:"Tiempo de entrega de pedidos", problema:"El 22% de los pedidos llega después de la fecha prometida y genera reclamos.", decision:"prometer una fecha de entrega realista", tipo:"regresion", entidad:"pedido", objetivo:"los días hasta la entrega", horizonte:0, unidad:"días", etiquetas:"si", historia:12, filas:900000, tasa:0, interp:"media", latencia:"real", volumen:0, valor:0, costo:0, lift:2}
+};
+
+const STORE_KEY = "problema-a-modelo:v1";
+let state = {...EXAMPLES["Fuga de clientes"]};
+let activeExample = "Fuga de clientes";
+try { const s = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (s && s.state) { state = {...state, ...s.state}; activeExample = s.example || null; } } catch(e) {}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => new Intl.NumberFormat("es", {maximumFractionDigits:0}).format(n);
+const money = n => (n<0?"−$":"$") + fmt(Math.abs(n));
+
+// ---------- build UI ----------
+const typesEl = $("types");
+for (const [k,t] of Object.entries(TYPES)) {
+  typesEl.insertAdjacentHTML("beforeend", `<label class="card"><input type="radio" name="tipo" value="${k}" data-k="tipo"><strong>${t.q}</strong><small>${t.ex}</small></label>`);
+}
+const exEl = $("examples");
+for (const name of Object.keys(EXAMPLES)) {
+  const b = document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=name; b.dataset.ex=name;
+  b.addEventListener("click", () => { state = {...EXAMPLES[name]}; activeExample = name; fillForm(); update(); });
+  exEl.appendChild(b);
+}
+
+function fillForm(){
+  document.querySelectorAll("[data-k]").forEach(el => {
+    const v = state[el.dataset.k];
+    if (el.type === "radio") el.checked = (el.value === v);
+    else el.value = v ?? "";
+  });
+}
+$("form").addEventListener("input", e => {
+  const el = e.target; if (!el.dataset.k) return;
+  state[el.dataset.k] = (el.type === "number" || el.type === "range") ? (el.value === "" ? "" : Number(el.value)) : el.value;
+  activeExample = null; update();
+});
+$("form").addEventListener("submit", e => e.preventDefault());
+
+// ---------- the translation logic ----------
+function horizonText(s){
+  const h = Number(s.horizonte)||0;
+  if (!h) return "en el momento de la decisión";
+  return `en los próximos ${h} ${s.unidad}`;
+}
+function build(s){
+  const T = TYPES[s.tipo] || TYPES.binaria;
+  const ent = s.entidad || "unidad", obj = s.objetivo || "el resultado", dec = s.decision || "actuar";
+  const H = horizonText(s);
+  const rate = (Number(s.tasa)||0)/100;
+  const rows = Number(s.filas)||0, hist = Number(s.historia)||0;
+  const hi = s.interp === "alta", lo = s.interp === "baja";
+  const out = {T};
+
+  // Formulation
+  const F = {
+    binaria:   `Para cada <em>${esc(ent)}</em>, en la fecha de corte, estimar la probabilidad de que <em>${esc(obj)}</em> ${H}, para decidir si <em>${esc(dec)}</em>.`,
+    multiclase:`Para cada <em>${esc(ent)}</em>, predecir <em>${esc(obj)}</em> entre un conjunto cerrado de categorías, para <em>${esc(dec)}</em>.`,
+    regresion: `Para cada <em>${esc(ent)}</em>, estimar <em>${esc(obj)}</em> ${H}, para <em>${esc(dec)}</em>.`,
+    pronostico:`Para cada <em>${esc(ent)}</em>, pronosticar <em>${esc(obj)}</em> por período ${H}, para <em>${esc(dec)}</em>.`,
+    ranking:   `Ordenar cada <em>${esc(ent)}</em> según la probabilidad de que <em>${esc(obj)}</em> ${H}, para elegir a quién <em>${esc(dec)}</em> primero.`,
+    anomalia:  `Puntuar cada <em>${esc(ent)}</em> según cuánto se aleja de lo normal (<em>${esc(obj)}</em>), para decidir si <em>${esc(dec)}</em>.`,
+    segmentos: `Agrupar cada <em>${esc(ent)}</em> en segmentos homogéneos según <em>${esc(obj)}</em>, para <em>${esc(dec)}</em>.`,
+    uplift:    `Para cada <em>${esc(ent)}</em>, estimar cuánto cambia la probabilidad de que <em>${esc(obj)}</em> ${H} si se decide <em>${esc(dec)}</em>, frente a no hacerlo.`
+  };
+  out.formula = F[s.tipo] || F.binaria;
+
+  // Target definition
+  const tgt = {
+    binaria:   [`y = 1 si ${obj} ${H}; y = 0 en caso contrario.`, "Fija una fecha de corte: las variables usan solo datos anteriores a ella y la etiqueta solo datos posteriores."],
+    ranking:   [`y = 1 si ${obj} ${H}; se entrena como clasificación y se usa el puntaje para ordenar.`, "Lo que importa es el orden en el tope de la lista, no la probabilidad exacta."],
+    multiclase:[`y = categoría de ${obj}. Agrupa en “otros” las clases con menos de ~1% de casos.`, "Revisa que las categorías sean excluyentes y estén bien registradas."],
+    regresion: [`y = ${obj} (valor numérico, en sus unidades originales).`, "Si la distribución tiene cola larga, considera predecir el logaritmo o un intervalo (cuantiles)."],
+    pronostico:[`y(t) = ${obj} agregado por período para cada ${ent}.`, "Decide el nivel de agregación (día/semana, SKU/categoría) que usa la decisión."],
+    anomalia:  ["Sin etiqueta obligatoria: el modelo aprende qué es normal y puntúa la desviación.", "Los casos confirmados por revisión se convierten en etiquetas para una versión supervisada."],
+    segmentos: ["Sin variable objetivo. El resultado es la asignación de cada unidad a un segmento.", "Define antes cuántos segmentos puede gestionar el negocio (normalmente 4–8)."],
+    uplift:    [`y = 1 si ${obj} ${H}, más un indicador de tratamiento (se aplicó o no ${dec}).`, "Requiere datos de un experimento con grupo de control aleatorio."]
+  };
+  out.target = tgt[s.tipo] || tgt.binaria;
+
+  // Metrics
+  const imb = rate > 0 && rate < 0.1;
+  const thr = (Number(s.valor)>0) ? (Number(s.costo)||0)/Number(s.valor) : null;
+  const M = {
+    binaria: [imb ? "PR-AUC (área bajo precisión–recall): la tasa base es baja y el ROC-AUC se ve engañosamente alto" : "ROC-AUC y F1", "Recall a la precisión mínima rentable", "Calibración (Brier score): la probabilidad se usará para decidir"],
+    ranking: ["Lift y precisión en el top 10% (precision@k)", "Curva de ganancia acumulada", "NDCG si el orden dentro del tope importa"],
+    multiclase: ["F1 macro (pesa igual a cada clase)", "Matriz de confusión por clase", "Exactitud top-2 si un humano elige entre sugerencias"],
+    regresion: ["MAE: error medio en las mismas unidades del negocio", "RMSE si los errores grandes son mucho más caros", "Cobertura de intervalos (p10–p90) si se promete un rango"],
+    pronostico: ["WAPE (error absoluto ponderado): robusto con ceros", "Sesgo: ¿sobreestima o subestima de forma sistemática?", "MASE frente al pronóstico ingenuo estacional"],
+    anomalia: ["Precisión en las k alertas revisables por día", "Recall sobre incidentes conocidos", "Tiempo hasta la detección"],
+    segmentos: ["Silueta y estabilidad de los segmentos (bootstrap)", "Diferencias de negocio entre segmentos (ticket, frecuencia, margen)", "Que cada segmento sea nombrable y accionable"],
+    uplift: ["Curva Qini / AUUC", "Uplift en el top 10% frente a tratar a todos", "Validación con un nuevo experimento A/B"]
+  };
+  out.metrics = M[s.tipo];
+  out.bizMetric = {
+    binaria:`Valor neto de las acciones: aciertos × valor − acciones × costo`, ranking:`Conversiones (o valor) logradas con la misma capacidad del equipo`,
+    multiclase:`Tiempo de gestión ahorrado y casos bien derivados`, regresion:`% de casos dentro de la tolerancia acordada con el negocio`,
+    pronostico:`Quiebres de stock y sobrestock (unidades y $)`, anomalia:`Pérdidas evitadas frente al costo de revisar alertas`,
+    segmentos:`Respuesta a campañas por segmento frente a la campaña única`, uplift:`Resultado incremental por $ invertido en la acción`
+  }[s.tipo];
+  out.thr = thr;
+
+  // Baseline
+  out.baseline = {
+    binaria:"Regla actual del negocio, o una regla simple (p. ej. clientes con caída de uso). Si no existe, predecir la tasa base para todos.",
+    ranking:"Ordenar por una regla simple (recencia o tamaño de empresa) o por la prioridad actual del equipo.",
+    multiclase:"Asignar siempre la clase más frecuente o usar reglas por palabras clave.",
+    regresion:"Mediana histórica por segmento (p. ej. por zona y tipo de envío).",
+    pronostico:"Pronóstico ingenuo estacional: el mismo período del ciclo anterior.",
+    anomalia:"Umbrales por desviación estándar (z-score) o las reglas vigentes.",
+    segmentos:"Segmentación RFM manual (recencia, frecuencia, monto) en terciles.",
+    uplift:"Tratar a todos, o al azar con el mismo presupuesto."
+  }[s.tipo];
+
+  // Models
+  let models = [];
+  const small = rows && rows < 5000;
+  switch(s.tipo){
+    case "binaria": case "ranking": case "multiclase":
+      models = hi ? ["Regresión logística regularizada (modelo de partida auditable)", "EBM / GAM: no lineal pero explicable variable por variable", "Gradient boosting (LightGBM/XGBoost) + SHAP solo si mejora de forma clara"]
+                  : small ? ["Regresión logística regularizada", "Random forest", "Gradient boosting con validación cruzada cuidadosa"]
+                  : ["Gradient boosting (LightGBM / XGBoost / CatBoost)", "Regresión logística como referencia", lo ? "Redes neuronales tabulares solo con datos muy grandes" : "SHAP para explicar puntajes al negocio"];
+      break;
+    case "regresion":
+      models = hi ? ["Regresión lineal / GAM con interacciones clave", "Gradient boosting con restricciones monotónicas", "Regresión cuantílica para entregar un rango"]
+                  : ["Gradient boosting (LightGBM / CatBoost)", "Regresión cuantílica para intervalos", "Regresión lineal regularizada como referencia"];
+      break;
+    case "pronostico":
+      models = rows > 100000 ? ["Modelo global de gradient boosting con rezagos y calendario (todas las series juntas)", "ETS / ARIMA por serie para las series principales", "Reconciliación jerárquica (SKU → categoría → total)"]
+                             : ["ETS (suavizamiento exponencial) / ARIMA por serie", "Regresión con estacionalidad y feriados", "Gradient boosting con rezagos si hay muchas series"];
+      break;
+    case "anomalia":
+      models = s.etiquetas === "no" ? ["Isolation Forest", "Puntajes robustos por grupo (mediana y MAD)", "Autoencoder si el volumen es muy alto"]
+                                    : ["Gradient boosting supervisado con las etiquetas confirmadas", "Isolation Forest como señal adicional", "Reglas de negocio para casos obvios"];
+      break;
+    case "segmentos":
+      models = ["K-means sobre variables estandarizadas (RFM + comportamiento)", "Mezcla gaussiana si los grupos se solapan", "HDBSCAN si hay ruido y grupos de forma irregular", "Árbol de decisión sobre los segmentos para describirlos en reglas"];
+      break;
+    case "uplift":
+      models = ["T-learner / X-learner con gradient boosting", "Causal forest", "Modelo de transformación de clase como referencia rápida"];
+  }
+  out.models = models;
+
+  // Features
+  const e = (ent||"").toLowerCase();
+  let feats;
+  if (/transac|pago|compra|tarjeta/.test(e)) feats = [
+    ["Monto y contexto", "monto vs. promedio del titular, comercio, canal, país"], ["Velocidad", "n.º de transacciones en la última hora / 24 h"],
+    ["Dispositivo y ubicación", "dispositivo nuevo, distancia a la ubicación habitual"], ["Historia del titular", "antigüedad, contracargos previos"]];
+  else if (/produc|tienda|sku|local|sucursal/.test(e)) feats = [
+    ["Rezagos de ventas", "ventas de hace 1, 2, 4 y 52 semanas; medias móviles"], ["Precio y promoción", "precio, descuento, exhibición, folleto"],
+    ["Calendario", "feriados, quincenas, temporada, eventos"], ["Disponibilidad", "quiebres pasados, ventas censuradas por falta de stock"]];
+  else if (/pedido|envío|envio|orden|ticket|reclamo|caso/.test(e)) feats = [
+    ["Características del caso", "tipo, tamaño, canal de ingreso, prioridad"], ["Origen y destino", "zona, distancia, operador asignado"],
+    ["Carga del sistema", "volumen en cola al momento de la creación"], ["Calendario", "día de la semana, hora, feriados"]];
+  else feats = [
+    ["Comportamiento reciente", "uso, compras o actividad en ventanas de 7, 30 y 90 días antes del corte"], ["Tendencia", "cambio de la actividad: último mes frente al trimestre anterior"],
+    ["Relación", "antigüedad, plan o producto, canal, reclamos y contactos con soporte"], ["Valor", "gasto, margen, medio de pago, deuda"]];
+  out.feats = feats;
+
+  // Validation
+  out.validation = T.sup || s.tipo === "anomalia"
+    ? [ `Partición temporal: entrenar con períodos antiguos y evaluar en los más recientes${Number(s.horizonte)?`, con un hueco de ${s.horizonte} ${s.unidad} entre ambos`:""}.`,
+        s.tipo === "pronostico" ? "Backtesting con origen móvil: varios cortes sucesivos, no uno solo." : "Repetir en 3 o más cortes para ver si el desempeño es estable.",
+        "Agrupar por " + ent + " si la misma unidad aparece en varias filas, para que no esté en entrenamiento y prueba a la vez." ]
+    : [ "Estabilidad: recalcular con muestras bootstrap y medir cuánto cambia la asignación.", "Validar con el negocio: ¿puede nombrar y usar cada segmento?", "Probar los segmentos en una campaña piloto." ];
+
+  // Risks
+  const risks = [];
+  if (T.sup) risks.push(["alto", "Fuga de información (leakage): variables que se registran después de la fecha de corte o que son consecuencia del resultado."]);
+  if (T.sup && s.etiquetas === "no") risks.push(["alto", "No hay etiquetas: hay que construirlas (reglas, etiquetado manual o esperar un ciclo) antes de entrenar."]);
+  if (s.etiquetas === "parcial") risks.push(["alto", "Etiquetas parciales: solo se conoce el resultado de los casos revisados. Eso sesga el modelo hacia lo que ya se buscaba."]);
+  if (imb && T.rate) risks.push([rate < 0.01 ? "alto" : "medio", `Clases desbalanceadas (${(rate*100).toLocaleString("es")}% positivos): usar ponderación de clases y no medir con exactitud (accuracy).`]);
+  if (["binaria","ranking","uplift"].includes(s.tipo)) risks.push(["medio", `Bucle de retroalimentación: al ${dec}, cambias el resultado que el modelo aprende. Mantén un grupo de control sin acción.`]);
+  if (s.tipo === "uplift") risks.push(["alto", "Sin experimento aleatorio el efecto estimado se confunde con quién recibió la acción."]);
+  if (s.latencia === "real") risks.push(["medio", "Tiempo real: cada variable debe existir y calcularse en milisegundos al momento de predecir. Evita agregados que solo se cierran de noche."]);
+  const hMonths = {minutos:0,horas:0,"días":1/30,semanas:7/30,meses:1}[s.unidad] * (Number(s.horizonte)||0);
+  if (T.sup && hist && hist < Math.max(12, 3*hMonths)) risks.push(["medio", `Poca historia (${hist} meses): difícil capturar estacionalidad y validar en varios cortes.`]);
+  if (s.tipo === "pronostico" && hist < 24) risks.push(["medio", "Menos de 2 años de historia: la estacionalidad anual se estimará con un solo ciclo."]);
+  if (small) risks.push(["medio", "Pocos registros: preferir modelos simples y validación cruzada repetida."]);
+  if (hi && !["segmentos"].includes(s.tipo)) risks.push(["medio", "Requisito de explicabilidad: documenta cada variable y evita atributos sensibles o sus sustitutos (edad, género, zona)."]);
+  risks.push(["medio", "Deriva: el comportamiento cambia con el tiempo. Define monitoreo mensual del desempeño y de la distribución de variables."]);
+  out.risks = risks;
+
+  // Readiness
+  let sc = 0; const notes = [];
+  const lab = T.sup ? ({si:35, parcial:18, no:5}[s.etiquetas] ?? 0) : 35; sc += lab;
+  if (T.sup && s.etiquetas !== "si") notes.push("faltan etiquetas completas");
+  const needH = s.tipo === "pronostico" ? 24 : 12;
+  sc += hist >= needH ? 25 : hist >= needH/2 ? 14 : 5; if (hist < needH) notes.push(`conviene tener ${needH}+ meses de historia`);
+  sc += rows >= 50000 ? 25 : rows >= 5000 ? 18 : rows >= 1000 ? 10 : 4; if (rows < 5000) notes.push("pocos registros");
+  const decOk = (s.decision||"").trim().length > 3; sc += decOk ? 15 : 0; if (!decOk) notes.push("falta definir la acción");
+  out.score = Math.min(100, sc);
+  out.readyText = sc >= 80 ? "Listo para un prototipo." : sc >= 55 ? "Viable con trabajo previo de datos." : "Primero hay que resolver los datos o la definición.";
+  if (notes.length) out.readyText += " Pendiente: " + notes.join(", ") + ".";
+
+  // Economics
+  if (T.eco && Number(s.valor) > 0 && Number(s.volumen) > 0 && rate > 0) {
+    const N = Number(s.volumen), V = Number(s.valor), C = Number(s.costo)||0, L = Number(s.lift)||1;
+    const k = Math.round(N*0.10);
+    const pModel = Math.min(1, rate*L);
+    out.eco = {
+      rows: [
+        ["Actuar sobre todos", N, rate, N*(rate*V - C)],
+        ["10% al azar", k, rate, k*(rate*V - C)],
+        [`10% priorizado por el modelo (lift ${L}×)`, k, pModel, k*(pModel*V - C)]
+      ],
+      breakeven: C/V
+    };
+  }
+  return out;
+}
+
+// ---------- render ----------
+function render(o, s){
+  $("o-title").textContent = s.titulo || "Caso sin nombre";
+  $("o-formula").innerHTML = o.formula;
+  const meta = [`<span class="pill type">${o.T.name}</span>`];
+  if (s.entidad) meta.push(`<span class="pill">unidad: ${esc(s.entidad)}</span>`);
+  if (Number(s.horizonte)) meta.push(`<span class="pill">horizonte: ${esc(s.horizonte)} ${esc(s.unidad)}</span>`);
+  meta.push(`<span class="pill">${s.latencia === "real" ? "tiempo real" : "en lote"}</span>`);
+  meta.push(`<span class="pill">${o.T.sup ? "supervisado" : "no supervisado"}</span>`);
+  $("o-meta").innerHTML = meta.join("");
+  $("o-score").innerHTML = `${o.score}<small>/100</small>`;
+  $("o-bar").style.width = o.score + "%";
+  $("o-ready").textContent = "Preparación: " + o.readyText;
+
+  const li = a => "<ul>" + a.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>";
+  let h = "";
+  h += `<section class="sec"><h3>Variable objetivo</h3><p>${esc(o.target[0])}</p><p class="why">${esc(o.target[1])}</p></section>`;
+  h += `<section class="sec"><h3>Modelo base a superar</h3><p>${esc(o.baseline)}</p><p class="why">Si el modelo no le gana a esto en la métrica de negocio, no se implementa.</p></section>`;
+  h += `<section class="sec"><h3>Métricas del modelo</h3>${li(o.metrics)}</section>`;
+  h += `<section class="sec"><h3>Métrica de negocio</h3><p>${esc(o.bizMetric)}</p>${o.thr!=null && o.T.eco ? `<p class="why">Actuar conviene cuando la probabilidad supera <b>${(o.thr*100).toLocaleString("es",{maximumFractionDigits:1})}%</b> (costo ÷ valor). Ese es el umbral de decisión, no 50%.</p>`:""}</section>`;
+  h += `<section class="sec wide"><h3>Variables candidatas</h3><div class="feat">${o.feats.map(([a,b])=>`<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div></section>`;
+  h += `<section class="sec"><h3>Modelos candidatos</h3>${li(o.models)}</section>`;
+  h += `<section class="sec"><h3>Validación</h3>${li(o.validation)}</section>`;
+  if (o.eco) {
+    h += `<section class="sec wide value"><h3>Valor económico por ciclo</h3><div class="tablewrap"><table><thead><tr><th>Estrategia</th><th class="n">Acciones</th><th class="n">% aciertos</th><th class="n">Valor neto</th></tr></thead><tbody>${
+      o.eco.rows.map(r=>`<tr><td>${esc(r[0])}</td><td class="n">${fmt(r[1])}</td><td class="n">${(r[2]*100).toLocaleString("es",{maximumFractionDigits:1})}%</td><td class="n ${r[3]>=0?"pos":"neg"}">${money(r[3])}</td></tr>`).join("")
+    }</tbody></table></div><p class="why">Precisión mínima para no perder dinero: ${(o.eco.breakeven*100).toLocaleString("es",{maximumFractionDigits:1})}%. Supuestos simples: un acierto siempre captura el valor completo.</p></section>`;
+  }
+  h += `<section class="sec wide"><h3>Riesgos a revisar</h3>${o.risks.map(([sv,t])=>`<div class="risk"><span class="sev ${sv}">${sv}</span><span>${esc(t)}</span></div>`).join("")}</section>`;
+  $("o-sections").innerHTML = h;
+}
+
+function toMarkdown(o, s){
+  const strip = x => x.replace(/<[^>]+>/g, "").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"');
+  const L = a => a.map(x=>`- ${x}`).join("\n");
+  let m = `# ${s.titulo || "Caso sin nombre"}\n\n**Problema:** ${s.problema||"—"}\n\n**Decisión:** ${s.decision||"—"}\n\n## Formulación\n${strip(o.formula)}\n\n- Tipo: ${o.T.name}\n- Unidad: ${s.entidad||"—"}\n- Horizonte: ${Number(s.horizonte)?`${s.horizonte} ${s.unidad}`:"inmediato"}\n- Ejecución: ${s.latencia==="real"?"tiempo real":"en lote"}\n- Preparación: ${o.score}/100. ${o.readyText}\n\n## Variable objetivo\n${o.target[0]}\n${o.target[1]}\n\n## Modelo base\n${o.baseline}\n\n## Métricas\n${L(o.metrics)}\n- Negocio: ${o.bizMetric}\n`;
+  if (o.thr!=null && o.T.eco) m += `- Umbral de decisión: ${(o.thr*100).toFixed(1)}%\n`;
+  m += `\n## Variables candidatas\n${L(o.feats.map(([a,b])=>`${a}: ${b}`))}\n\n## Modelos candidatos\n${L(o.models)}\n\n## Validación\n${L(o.validation)}\n`;
+  if (o.eco) m += `\n## Valor económico por ciclo\n| Estrategia | Acciones | % aciertos | Valor neto |\n|---|---:|---:|---:|\n${o.eco.rows.map(r=>`| ${r[0]} | ${fmt(r[1])} | ${(r[2]*100).toFixed(1)}% | ${money(r[3])} |`).join("\n")}\n`;
+  m += `\n## Riesgos\n${L(o.risks.map(([sv,t])=>`[${sv}] ${t}`))}\n`;
+  return m;
+}
+
+let lastMd = "";
+function update(){
+  const T = TYPES[state.tipo] || TYPES.binaria;
+  $("tasa-wrap").hidden = !T.rate;
+  $("eco").hidden = !T.eco;
+  $("horizon-row").hidden = state.tipo === "segmentos";
+  $("lift-out").textContent = (state.lift||1).toLocaleString("es") + "×";
+  document.querySelectorAll("#examples .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ex === activeExample)));
+  const o = build(state);
+  render(o, state);
+  lastMd = toMarkdown(o, state);
+  $("md").textContent = lastMd;
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({state, example: activeExample})); } catch(e) {}
+}
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,1800); }
+$("copy").addEventListener("click", () => {
+  const md = $("md");
+  const fallback = () => { md.hidden=false; $("toggle-md").setAttribute("aria-expanded","true"); $("toggle-md").textContent="Ocultar texto";
+    const r=document.createRange(); r.selectNodeContents(md); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Texto seleccionado: cópialo con Ctrl/Cmd + C"); };
+  try { navigator.clipboard.writeText(lastMd).then(()=>toast("Ficha copiada en Markdown"), fallback); } catch(e){ fallback(); }
+});
+$("toggle-md").addEventListener("click", e => {
+  const md=$("md"); md.hidden=!md.hidden; e.currentTarget.setAttribute("aria-expanded", String(!md.hidden)); e.currentTarget.textContent = md.hidden ? "Ver texto" : "Ocultar texto";
+});
+
+fillForm(); update();
+</script>
