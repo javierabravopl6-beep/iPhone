@@ -1,5 +1,7 @@
 # Portafolio profesional
 
+**Javiera Paz Bravo Latorre** · [LinkedIn](https://www.linkedin.com/in/javiera-paz-bravo-latorre-61280717b)
+
 **Analista de Inteligencia de Negocios y Product Owner de soluciones comerciales.**
 Ingeniería en Administración de Empresas + Diplomado en Business Intelligence.
 
