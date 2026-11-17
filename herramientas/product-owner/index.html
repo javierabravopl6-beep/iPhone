@@ -1,0 +1,376 @@
+<title>Backlog del Product Owner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ranked backlog on the left (the decision), story editor on the right (the detail); same kit as "Del problema al modelo", blue accent for the PO role */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#141d2b; --muted:#566377; --line:#d8dee8;
+  --accent:#2448a0; --accent-ink:#ffffff; --accent-soft:#e3e9f7;
+  --warn:#a8501a; --warn-soft:#fbeee4; --ok:#2b7445; --ok-soft:#e3f2e8; --bad:#a63232;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e131b; --surface:#151d29; --ink:#e3e9f1; --muted:#95a2b5; --line:#283345;
+  --accent:#86a5ef; --accent-ink:#0d1526; --accent-soft:#1d2a45;
+  --warn:#e3965e; --warn-soft:#3a271a; --ok:#6fc28d; --ok-soft:#183223; --bad:#e57b7b;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e131b; --surface:#151d29; --ink:#e3e9f1; --muted:#95a2b5; --line:#283345;
+  --accent:#86a5ef; --accent-ink:#0d1526; --accent-soft:#1d2a45;
+  --warn:#e3965e; --warn-soft:#3a271a; --ok:#6fc28d; --ok-soft:#183223; --bad:#e57b7b;
+  color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 48px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(28px,4vw,40px);font-weight:700;line-height:1.05}
+.kit{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.kit a{color:var(--accent);text-decoration:none}.kit a:hover{text-decoration:underline}
+.lede{color:var(--muted);max-width:66ch;margin:6px 0 0}
+button,input,select,textarea{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.tb{display:flex;flex-direction:column;gap:5px}
+.lbl,.field>label{font-size:13px;font-weight:600}
+.hint{font-size:12.5px;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg label{padding:7px 12px;font-size:13px;cursor:pointer;background:var(--bg);border-right:1px solid var(--line);white-space:nowrap}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+input[type=text],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:56px}
+.tb input[type=number]{width:110px}
+.btn{font:600 13px var(--f-body);border-radius:7px;padding:8px 12px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.small{padding:4px 9px;font-size:12px}
+.tb-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+@media (min-width:1040px){.grid{grid-template-columns:minmax(0,11fr) minmax(0,9fr)}.editor{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.panel-head h2{font-size:19px}
+.eyebrow{font:500 11.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th{font:500 11px var(--f-mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th.n,td.n{text-align:right;font-family:var(--f-mono)}
+tbody tr.item{cursor:pointer}
+tbody tr.item:hover td{background:var(--bg)}
+tbody tr.item[aria-selected="true"] td{background:var(--accent-soft)}
+tr.out td{color:var(--muted)}
+td.rank{font:600 13px var(--f-mono);color:var(--muted);width:32px}
+.ttl{font-weight:600;display:block}
+.type{font:500 11px var(--f-mono);color:var(--muted)}
+.scorebar{display:flex;align-items:center;gap:8px;min-width:120px}
+.scorebar i{display:block;height:7px;border-radius:99px;background:var(--accent);min-width:2px}
+.scorebar b{font:600 13px var(--f-mono);min-width:44px}
+tr.cut td{padding:6px 10px;background:var(--bg);font:500 11.5px var(--f-mono);color:var(--accent);letter-spacing:.04em;text-transform:uppercase;border-bottom:2px dashed var(--accent)}
+.dot{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap}
+.dot::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--warn)}
+.dot.ok::before{background:var(--ok)}
+.dot.mid::before{background:var(--muted)}
+.summary{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.summary b{color:var(--ink);font-family:var(--f-mono)}
+
+.ed{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.story{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;align-items:center}
+.story span{font:600 13px var(--f-mono);color:var(--accent)}
+.crit{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;position:relative}
+.crit span{font:600 12px var(--f-mono);color:var(--muted)}
+.crit .rm{position:absolute;top:6px;right:6px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
+.crit .rm:hover{color:var(--bad)}
+.crits{display:flex;flex-direction:column;gap:8px}
+.crit .head{grid-column:1/-1;font:500 11.5px var(--f-mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.sect{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);border-top:1px solid var(--line);padding-top:14px}
+.checks{display:flex;flex-direction:column;gap:6px}
+.check{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:13.5px;align-items:start}
+.check .ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-mono);background:var(--warn-soft);color:var(--warn)}
+.check.ok .ic{background:var(--ok-soft);color:var(--ok)}
+.check b{font-weight:600}
+.check small{display:block;color:var(--muted);font-size:12.5px}
+.readybar{display:flex;align-items:center;gap:12px}
+.readybar .bar{flex:1;height:8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.readybar .bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.readybar b{font:700 20px var(--f-display);font-variant-numeric:tabular-nums}
+pre.md{white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:0;max-height:300px;overflow:auto}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.empty{padding:30px 18px;color:var(--muted);text-align:center}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;z-index:5}
+footer{color:var(--muted);font-size:12.5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="kit"><span>Kit de roles</span><span>·</span><a href="https://claude.ai/artifact/6tCwxBk3j5MbFnzoTmgqP2">Científico de datos</a><span>·</span><span style="color:var(--ink)">Product Owner</span></div>
+    <h1>Backlog del Product Owner</h1>
+    <p class="lede">Prioriza el backlog con RICE o WSJF, marca qué cabe en el próximo release y convierte cada pedido en una historia de usuario lista para el sprint, con criterios de aceptación y revisión INVEST.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="tb"><span class="lbl">Método de priorización</span>
+      <div class="seg" role="radiogroup" aria-label="Método de priorización">
+        <label><input type="radio" name="method" value="rice">RICE</label>
+        <label><input type="radio" name="method" value="wsjf">WSJF</label>
+      </div></div>
+    <div class="tb"><label class="lbl" for="capacity">Capacidad del release</label>
+      <input type="number" id="capacity" min="0" step="0.5"><span class="hint">persona-semanas</span></div>
+    <div class="tb-actions">
+      <button class="btn" type="button" id="add">Nuevo ítem</button>
+      <button class="btn ghost" type="button" id="copy-backlog">Copiar backlog</button>
+      <button class="btn ghost" type="button" id="reset">Restaurar ejemplo</button>
+    </div>
+  </div>
+  <div class="confirm" id="reset-confirm" hidden>¿Reemplazar tu backlog por el ejemplo? Se pierden tus cambios. <button class="btn danger small" type="button" id="reset-yes">Sí, restaurar</button><button class="btn ghost small" type="button" id="reset-no">Cancelar</button></div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><div><div class="eyebrow" id="method-desc"></div><h2>Backlog priorizado</h2></div><span class="hint" id="example-note"></span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>#</th><th>Ítem</th><th>Puntaje</th><th class="n">Esfuerzo</th><th class="n">Acum.</th><th>Historia</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <div class="summary" id="summary"></div>
+    </section>
+
+    <section class="panel editor" id="editor" aria-live="polite"></section>
+  </div>
+  <footer>RICE = alcance × impacto × confianza ÷ esfuerzo. WSJF = (valor de negocio + urgencia + reducción de riesgo) ÷ esfuerzo. Tu backlog se guarda solo en este navegador.</footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const TIPOS = ["Funcionalidad","Mejora","Bug","Deuda técnica","Experimento"];
+const IMPACT = [[0.25,"Mínimo"],[0.5,"Bajo"],[1,"Medio"],[2,"Alto"],[3,"Masivo"]];
+const FIB = [1,2,3,5,8,13,20];
+
+const EXAMPLE = () => ({method:"rice", capacity:8, sel:"i1", example:true, items:[
+  {id:"i1", titulo:"Recordatorio de carrito abandonado", tipo:"Funcionalidad", rol:"comprador que dejó productos en el carrito", quiero:"recibir un recordatorio con los productos que elegí", para:"terminar la compra sin volver a buscarlos",
+   criterios:[{dado:"un comprador con sesión iniciada dejó productos en el carrito",cuando:"pasan 24 horas sin que compre",entonces:"recibe un correo con los productos, precios actuales y un enlace al carrito"},
+              {dado:"el comprador ya completó la compra",cuando:"se cumplen las 24 horas",entonces:"no se envía ningún recordatorio"}],
+   reach:12000, impact:2, conf:80, effort:2, bv:13, tc:8, rr:3, notas:"Necesita consentimiento de comunicaciones del cliente."},
+  {id:"i2", titulo:"Pago con billetera digital", tipo:"Funcionalidad", rol:"comprador desde el celular", quiero:"pagar con mi billetera digital", para:"no escribir los datos de mi tarjeta",
+   criterios:[{dado:"un comprador en el checkout desde el celular",cuando:"elige pagar con billetera digital y confirma",entonces:"el pedido queda pagado y ve la confirmación"}],
+   reach:20000, impact:1, conf:80, effort:4, bv:8, tc:5, rr:2, notas:"Depende de la migración del servicio de pagos."},
+  {id:"i3", titulo:"Cupón falla con productos en oferta", tipo:"Bug", rol:"comprador con un cupón válido", quiero:"aplicar el cupón aunque tenga productos en oferta en el carrito", para:"recibir el descuento prometido",
+   criterios:[{dado:"un carrito con un producto en oferta y otro sin oferta",cuando:"aplico un cupón válido del 10%",entonces:"el descuento se aplica al producto sin oferta y veo el total actualizado"}],
+   reach:4000, impact:2, conf:100, effort:0.5, bv:8, tc:13, rr:2, notas:"Genera reclamos en soporte cada semana."},
+  {id:"i4", titulo:"Seguimiento del pedido en tiempo real", tipo:"Funcionalidad", rol:"cliente", quiero:"ver en un mapa dónde está mi pedido", para:"",
+   criterios:[], reach:15000, impact:1, conf:50, effort:6, bv:5, tc:3, rr:1, notas:""},
+  {id:"i5", titulo:"Recomendaciones personalizadas en el home", tipo:"Experimento", rol:"comprador recurrente", quiero:"ver productos relacionados con lo que suelo comprar", para:"descubrir productos útiles más rápido",
+   criterios:[{dado:"un comprador con 3 o más compras",cuando:"entra al home",entonces:"ve una fila de 8 recomendaciones basadas en su historial"},
+              {dado:"el experimento está activo",cuando:"termina el período de 3 semanas",entonces:"se compara la conversión con el grupo de control"}],
+   reach:9000, impact:1, conf:50, effort:3, bv:8, tc:2, rr:5, notas:"Modelo definido con la herramienta Del problema al modelo."},
+  {id:"i6", titulo:"Migrar el servicio de pagos", tipo:"Deuda técnica", rol:"equipo de desarrollo", quiero:"migrar el servicio de pagos a la nueva plataforma", para:"poder sumar nuevos medios de pago sin riesgo",
+   criterios:[{dado:"el nuevo servicio en producción",cuando:"se procesan pagos durante una semana",entonces:"la tasa de error no supera la del servicio actual"}],
+   reach:20000, impact:0.5, conf:80, effort:5, bv:3, tc:5, rr:13, notas:""},
+  {id:"i7", titulo:"Filtros por talla y color", tipo:"Mejora", rol:"comprador de ropa", quiero:"filtrar el catálogo por talla y color", para:"ver solo lo que me sirve",
+   criterios:[{dado:"el catálogo de una categoría de ropa",cuando:"selecciono talla M y color azul",entonces:"solo veo productos con stock en talla M y color azul"}],
+   reach:8000, impact:1, conf:100, effort:1.5, bv:5, tc:3, rr:1, notas:""}
+]});
+
+const KEY = "po-backlog:v1";
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { S = null; }
+if (!S || !Array.isArray(S.items)) S = EXAMPLE();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num = (n, d=1) => new Intl.NumberFormat("es", {maximumFractionDigits:d}).format(n);
+const uid = () => "i" + Math.random().toString(36).slice(2,8);
+
+function score(it){
+  const e = Math.max(Number(it.effort)||0, 0.1);
+  if (S.method === "wsjf") return ((+it.bv||0) + (+it.tc||0) + (+it.rr||0)) / e;
+  return (+it.reach||0) * (+it.impact||0) * ((+it.conf||0)/100) / e;
+}
+
+// ---- story quality checks (INVEST + definition of ready) ----
+function checks(it){
+  const full = (it.criterios||[]).filter(c => c.dado?.trim() && c.cuando?.trim() && c.entonces?.trim());
+  const how = /\b(bot[oó]n|base de datos|tabla|endpoint|api|microservicio|campo|pantalla modal|dropdown|sql)\b/i.test(it.quiero||"");
+  const generic = /^(el |un )?(usuario|cliente)$/i.test((it.rol||"").trim());
+  const dep = /depende/i.test(it.notas||"");
+  const e = Number(it.effort)||0;
+  return [
+    {k:"Centrada en una persona concreta", ok: !!(it.rol||"").trim() && !generic, tip: generic ? "“Usuario” o “cliente” es muy amplio. ¿Qué tipo de usuario, en qué situación?" : "Define el rol: quién tiene la necesidad."},
+    {k:"Valiosa", ok: (it.para||"").trim().length >= 8, tip:"Completa el “para”: el beneficio explica por qué se prioriza."},
+    {k:"Negociable (dice qué, no cómo)", ok: !!(it.quiero||"").trim() && !how, tip: how ? "El “quiero” impone una solución técnica. Describe la necesidad y deja el diseño al equipo." : "Escribe qué quiere lograr la persona."},
+    {k:"Testeable", ok: full.length >= 1, tip:"Agrega al menos un criterio de aceptación completo (Dado / Cuando / Entonces)."},
+    {k:"Cubre el caso alternativo", ok: full.length >= 2, tip:"Suma un segundo criterio: un error, un borde o qué no debe pasar."},
+    {k:"Estimable y pequeña", ok: e > 0 && e <= 2, tip: e > 2 ? `Estimada en ${num(e)} persona-semanas: divídela para que quepa en un sprint.` : "Falta la estimación de esfuerzo."},
+    {k:"Independiente", ok: !dep, tip:"Las notas indican una dependencia. Prioriza primero lo que la desbloquea o sepárala."}
+  ];
+}
+const readiness = it => { const c = checks(it); return c.filter(x=>x.ok).length / c.length; };
+
+// ---- backlog table ----
+function ranked(){ return [...S.items].map(it => ({it, s:score(it)})).sort((a,b) => b.s - a.s); }
+
+function renderTable(){
+  const R = ranked(); const max = Math.max(...R.map(r=>r.s), 0.0001);
+  const cap = Number(S.capacity)||0;
+  let acc = 0, cutDone = false, inCount = 0, inEffort = 0, h = "";
+  R.forEach(({it, s}, i) => {
+    const e = Number(it.effort)||0;
+    if (!cutDone && cap > 0 && acc + e > cap) { h += `<tr class="cut"><td colspan="6">Límite de capacidad · ${num(acc)} de ${num(cap)} persona-semanas</td></tr>`; cutDone = true; }
+    acc += e;
+    const out = cutDone; if (!out) { inCount++; inEffort = acc; }
+    const r = readiness(it);
+    const cls = r === 1 ? "ok" : r >= .6 ? "mid" : "";
+    const lab = r === 1 ? "Lista" : r >= .6 ? "Casi lista" : "Refinar";
+    h += `<tr class="item${out?" out":""}" data-id="${it.id}" tabindex="0" aria-selected="${it.id===S.sel}">
+      <td class="rank">${i+1}</td>
+      <td><span class="ttl">${esc(it.titulo||"Sin título")}</span><span class="type">${esc(it.tipo)}</span></td>
+      <td><div class="scorebar"><b>${num(s, s<10?1:0)}</b><i style="width:${Math.round(70*s/max)}px"></i></div></td>
+      <td class="n">${num(e)}</td><td class="n">${num(acc)}</td>
+      <td><span class="dot ${cls}">${lab}</span></td></tr>`;
+  });
+  if (!R.length) h = `<tr><td colspan="6" class="empty">El backlog está vacío. Usa “Nuevo ítem” para agregar el primer pedido.</td></tr>`;
+  $("rows").innerHTML = h;
+  const ready = S.items.filter(it => readiness(it) === 1).length;
+  $("summary").innerHTML = `<span>Entran al release: <b>${inCount}</b> ítems · <b>${num(inEffort)}</b> persona-semanas</span><span>·</span><span>Listas para sprint: <b>${ready}</b> de <b>${S.items.length}</b></span>`;
+  $("method-desc").textContent = S.method === "wsjf" ? "WSJF · costo de demorar ÷ esfuerzo" : "RICE · alcance × impacto × confianza ÷ esfuerzo";
+  $("example-note").textContent = S.example ? "Datos de ejemplo: una tienda online" : "";
+}
+$("rows").addEventListener("click", e => { const tr = e.target.closest("tr.item"); if (tr) select(tr.dataset.id); });
+$("rows").addEventListener("keydown", e => { if ((e.key==="Enter"||e.key===" ") && e.target.matches("tr.item")) { e.preventDefault(); select(e.target.dataset.id); } });
+
+// ---- editor ----
+const cur = () => S.items.find(i => i.id === S.sel);
+function select(id){ S.sel = id; save(); renderTable(); renderEditor(); }
+
+function renderEditor(){
+  const it = cur(); const ed = $("editor");
+  if (!it) { ed.innerHTML = `<div class="empty">Selecciona un ítem del backlog para escribir su historia.</div>`; return; }
+  const imp = IMPACT.map(([v,l]) => `<option value="${v}" ${+it.impact===v?"selected":""}>${l} (${v})</option>`).join("");
+  const fib = k => FIB.map(v => `<option value="${v}" ${+it[k]===v?"selected":""}>${v}</option>`).join("");
+  const scoring = S.method === "wsjf" ? `
+      <div class="row">
+        <div class="field"><label for="f-bv">Valor de negocio</label><select id="f-bv" data-f="bv">${fib("bv")}</select></div>
+        <div class="field"><label for="f-tc">Urgencia</label><select id="f-tc" data-f="tc">${fib("tc")}</select></div>
+        <div class="field"><label for="f-rr">Reduce riesgo / habilita</label><select id="f-rr" data-f="rr">${fib("rr")}</select></div>
+        <div class="field"><label for="f-effort">Esfuerzo (p-sem)</label><input type="number" min="0" step="0.5" id="f-effort" data-f="effort" value="${esc(it.effort)}"></div>
+      </div><span class="hint">Escala Fibonacci relativa: compara cada ítem con el resto del backlog.</span>` : `
+      <div class="row">
+        <div class="field"><label for="f-reach">Alcance</label><input type="number" min="0" id="f-reach" data-f="reach" value="${esc(it.reach)}"><span class="hint">personas por trimestre</span></div>
+        <div class="field"><label for="f-impact">Impacto</label><select id="f-impact" data-f="impact">${imp}</select></div>
+        <div class="field"><label for="f-conf">Confianza</label><select id="f-conf" data-f="conf">${[50,80,100].map(v=>`<option value="${v}" ${+it.conf===v?"selected":""}>${v}%</option>`).join("")}</select></div>
+        <div class="field"><label for="f-effort">Esfuerzo</label><input type="number" min="0" step="0.5" id="f-effort" data-f="effort" value="${esc(it.effort)}"><span class="hint">persona-semanas</span></div>
+      </div>`;
+  ed.innerHTML = `
+    <div class="panel-head"><div><div class="eyebrow">Historia de usuario</div><h2 id="ed-title">${esc(it.titulo||"Sin título")}</h2></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="copy-story">Copiar historia</button><button class="btn danger" type="button" id="del">Eliminar</button></div></div>
+    <div class="confirm" id="del-confirm" hidden style="padding:10px 18px 0">¿Eliminar “${esc(it.titulo)}” del backlog? <button class="btn danger small" type="button" id="del-yes">Sí, eliminar</button><button class="btn ghost small" type="button" id="del-no">Cancelar</button></div>
+    <div class="ed">
+      <div class="row" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">
+        <div class="field"><label for="f-titulo">Título</label><input type="text" id="f-titulo" data-f="titulo" value="${esc(it.titulo)}"></div>
+        <div class="field"><label for="f-tipo">Tipo</label><select id="f-tipo" data-f="tipo">${TIPOS.map(t=>`<option ${t===it.tipo?"selected":""}>${t}</option>`).join("")}</select></div>
+      </div>
+      <div class="story">
+        <span>Como</span><input type="text" id="f-rol" data-f="rol" value="${esc(it.rol)}" placeholder="tipo de usuario y su situación" aria-label="Como">
+        <span>quiero</span><input type="text" id="f-quiero" data-f="quiero" value="${esc(it.quiero)}" placeholder="lo que necesita hacer" aria-label="quiero">
+        <span>para</span><input type="text" id="f-para" data-f="para" value="${esc(it.para)}" placeholder="el beneficio que obtiene" aria-label="para">
+      </div>
+      <div class="sect">Criterios de aceptación</div>
+      <div class="crits" id="crits">${(it.criterios||[]).map((c,i)=>`
+        <div class="crit"><div class="head">Escenario ${i+1}</div><button class="rm" type="button" data-rm="${i}" aria-label="Quitar escenario ${i+1}">×</button>
+          <span>Dado</span><input type="text" data-c="${i}" data-p="dado" value="${esc(c.dado)}" aria-label="Dado, escenario ${i+1}">
+          <span>Cuando</span><input type="text" data-c="${i}" data-p="cuando" value="${esc(c.cuando)}" aria-label="Cuando, escenario ${i+1}">
+          <span>Entonces</span><input type="text" data-c="${i}" data-p="entonces" value="${esc(c.entonces)}" aria-label="Entonces, escenario ${i+1}">
+        </div>`).join("")}</div>
+      <div><button class="btn ghost small" type="button" id="add-crit">Agregar escenario</button></div>
+      <div class="sect">Priorización · ${S.method === "wsjf" ? "WSJF" : "RICE"}</div>
+      ${scoring}
+      <div class="field"><label for="f-notas">Notas, dependencias y supuestos</label><textarea id="f-notas" data-f="notas">${esc(it.notas)}</textarea></div>
+      <div class="sect">¿Está lista para el sprint?</div>
+      <div class="readybar"><b id="r-score"></b><div class="bar"><i id="r-bar"></i></div></div>
+      <div class="checks" id="checks"></div>
+      <div class="sect">Vista para el ticket</div>
+      <pre class="md" id="story-md"></pre>
+    </div>`;
+  refreshDetail();
+}
+
+function storyMd(it){
+  const crit = (it.criterios||[]).map((c,i)=>`**Escenario ${i+1}**\n- Dado ${c.dado||"…"}\n- Cuando ${c.cuando||"…"}\n- Entonces ${c.entonces||"…"}`).join("\n\n") || "_Sin criterios todavía_";
+  const sc = S.method === "wsjf" ? `WSJF ${num(score(it))} (valor ${it.bv}, urgencia ${it.tc}, riesgo ${it.rr}, esfuerzo ${it.effort})`
+                                 : `RICE ${num(score(it),0)} (alcance ${it.reach}, impacto ${it.impact}, confianza ${it.conf}%, esfuerzo ${it.effort})`;
+  return `## ${it.titulo||"Sin título"}\nTipo: ${it.tipo} · ${sc}\n\n**Como** ${it.rol||"…"}, **quiero** ${it.quiero||"…"} **para** ${it.para||"…"}.\n\n### Criterios de aceptación\n${crit}${it.notas?`\n\n### Notas\n${it.notas}`:""}\n`;
+}
+
+function refreshDetail(){
+  const it = cur(); if (!it) return;
+  const c = checks(it), ok = c.filter(x=>x.ok).length;
+  $("r-score").textContent = `${ok}/${c.length}`;
+  $("r-bar").style.width = (100*ok/c.length) + "%";
+  $("checks").innerHTML = c.map(x => `<div class="check ${x.ok?"ok":""}"><span class="ic" aria-hidden="true">${x.ok?"✓":"!"}</span><div><b>${x.k}</b>${x.ok?"":`<small>${esc(x.tip)}</small>`}</div></div>`).join("");
+  $("story-md").textContent = storyMd(it);
+  $("ed-title").textContent = it.titulo || "Sin título";
+}
+
+$("editor").addEventListener("input", e => {
+  const it = cur(); if (!it) return; const el = e.target;
+  if (el.dataset.f) { const k = el.dataset.f; it[k] = ["titulo","tipo","rol","quiero","para","notas"].includes(k) ? el.value : (el.value===""? "" : Number(el.value)); }
+  else if (el.dataset.c != null) { it.criterios[+el.dataset.c][el.dataset.p] = el.value; }
+  else return;
+  save(); renderTable(); refreshDetail();
+});
+$("editor").addEventListener("click", e => {
+  const it = cur(); if (!it) return; const t = e.target;
+  if (t.id === "add-crit") { it.criterios = it.criterios || []; it.criterios.push({dado:"",cuando:"",entonces:""}); save(); renderEditor(); renderTable();
+    const ins = document.querySelectorAll(`[data-c="${it.criterios.length-1}"]`); ins[0]?.focus(); }
+  else if (t.dataset.rm != null) { it.criterios.splice(+t.dataset.rm, 1); save(); renderEditor(); renderTable(); }
+  else if (t.id === "del") $("del-confirm").hidden = false;
+  else if (t.id === "del-no") $("del-confirm").hidden = true;
+  else if (t.id === "del-yes") { S.items = S.items.filter(x => x.id !== it.id); S.sel = ranked()[0]?.it.id || null; save(); renderTable(); renderEditor(); toast("Ítem eliminado"); }
+  else if (t.id === "copy-story") copy(storyMd(it), "Historia copiada");
+});
+
+// ---- toolbar ----
+document.querySelectorAll('input[name="method"]').forEach(r => { r.checked = r.value === S.method;
+  r.addEventListener("change", () => { S.method = r.value; save(); renderTable(); renderEditor(); }); });
+$("capacity").value = S.capacity;
+$("capacity").addEventListener("input", e => { S.capacity = Number(e.target.value)||0; save(); renderTable(); });
+$("add").addEventListener("click", () => {
+  const it = {id:uid(), titulo:"Nuevo pedido", tipo:"Funcionalidad", rol:"", quiero:"", para:"", criterios:[], reach:1000, impact:1, conf:80, effort:1, bv:3, tc:3, rr:1, notas:""};
+  S.items.push(it); S.sel = it.id; S.example = false; save(); renderTable(); renderEditor();
+  const f = $("f-titulo"); f.focus(); f.select();
+});
+$("reset").addEventListener("click", () => $("reset-confirm").hidden = false);
+$("reset-no").addEventListener("click", () => $("reset-confirm").hidden = true);
+$("reset-yes").addEventListener("click", () => { S = EXAMPLE(); save(); $("reset-confirm").hidden = true;
+  document.querySelectorAll('input[name="method"]').forEach(r => r.checked = r.value === S.method); $("capacity").value = S.capacity;
+  renderTable(); renderEditor(); toast("Ejemplo restaurado"); });
+$("copy-backlog").addEventListener("click", () => {
+  const cap = Number(S.capacity)||0; let acc = 0;
+  const lines = ranked().map(({it,s},i) => { acc += Number(it.effort)||0; const inR = !cap || acc <= cap;
+    return `| ${i+1} | ${it.titulo} | ${it.tipo} | ${num(s, s<10?1:0)} | ${num(it.effort)} | ${inR?"Sí":"No"} | ${readiness(it)===1?"Lista":"Refinar"} |`; });
+  copy(`# Backlog priorizado (${S.method.toUpperCase()})\nCapacidad del release: ${num(cap)} persona-semanas\n\n| # | Ítem | Tipo | Puntaje | Esfuerzo | Entra | Historia |\n|---|---|---|---:|---:|---|---|\n${lines.join("\n")}\n`, "Backlog copiado");
+});
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,1800); }
+function copy(text, ok){
+  const fallback = () => { const md = $("story-md"); if (md) { md.textContent = text; const r=document.createRange(); r.selectNodeContents(md); const s=getSelection(); s.removeAllRanges(); s.addRange(r); } toast("Texto seleccionado: cópialo con Ctrl/Cmd + C"); };
+  try { navigator.clipboard.writeText(text).then(()=>toast(ok), fallback); } catch(e) { fallback(); }
+}
+
+renderTable(); renderEditor();
+</script>

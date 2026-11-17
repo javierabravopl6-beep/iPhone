@@ -26,12 +26,15 @@
   color-scheme:dark;}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 48px}
 .wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
 header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
 h1{font-size:clamp(28px,4vw,40px);font-weight:700;line-height:1.05}
+.kit{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.kit a{color:var(--accent);text-decoration:none}.kit a:hover{text-decoration:underline}
 .lede{color:var(--muted);max-width:62ch;margin:6px 0 0}
 .examples{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .examples span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-right:4px}
@@ -118,6 +121,7 @@ footer{color:var(--muted);font-size:12.5px}
 <div class="wrap">
   <header>
     <div>
+      <div class="kit"><span>Kit de roles</span><span>·</span><span style="color:var(--ink)">Científico de datos</span><span>·</span><a href="https://claude.ai/artifact/3yMEDAsDQFWCzTjTgnW6ip">Product Owner</a></div>
       <h1>Del problema al modelo</h1>
       <p class="lede">Describe un problema de negocio y responde unas preguntas. La ficha de la derecha lo traduce a un modelo predictivo: qué predecir, para quién, con qué métrica, contra qué modelo base y con qué riesgos.</p>
     </div>
