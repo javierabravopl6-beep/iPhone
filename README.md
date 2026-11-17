@@ -2,7 +2,7 @@
 
 **Javiera Paz Bravo Latorre** · [LinkedIn](https://www.linkedin.com/in/javiera-paz-bravo-latorre-61280717b)
 
-**Analista de Inteligencia de Negocios y Product Owner de soluciones comerciales.**
+**Analista de Inteligencia de Negocios y Product Owner de soluciones comerciales** en la industria inmobiliaria (corretaje de propiedades).
 Ingeniería en Administración de Empresas + Diplomado en Business Intelligence.
 
 Abre [`index.html`](index.html) para ver el perfil completo: formación, trayectoria, roles y escalera de la analítica.

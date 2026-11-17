@@ -226,6 +226,9 @@ const TYPES = {
 };
 
 const EXAMPLES = {
+  "Leads de compradores": {titulo:"Priorización de leads de compradores", problema:"Llegan unos 2.500 leads al mes desde portales y redes. Los corredores los atienden por orden de llegada y solo 3 de cada 100 terminan en promesa de compraventa.", decision:"contactar a cada lead", tipo:"ranking", entidad:"lead de comprador", objetivo:"firme una promesa de compraventa", horizonte:60, unidad:"días", etiquetas:"si", historia:30, filas:75000, tasa:3, interp:"media", latencia:"batch", volumen:2500, valor:2000000, costo:60000, lift:3},
+  "Propiedad estancada": {titulo:"Propiedades en riesgo de estancarse", problema:"Un tercio de las propiedades captadas sigue sin venderse a los 90 días. Los propietarios se frustran y algunos se van con otra corredora.", decision:"proponer un ajuste de precio o reforzar la promoción", tipo:"binaria", entidad:"propiedad publicada", objetivo:"siga sin venderse", horizonte:90, unidad:"días", etiquetas:"si", historia:36, filas:40000, tasa:35, interp:"alta", latencia:"batch", volumen:800, valor:900000, costo:120000, lift:1.8},
+  "Precio sugerido": {titulo:"Precio de publicación sugerido", problema:"Las propiedades sobrevaloradas tardan el doble en venderse y terminan con rebajas. El precio se fija según la expectativa del propietario.", decision:"recomendar al propietario un precio de publicación", tipo:"regresion", entidad:"propiedad", objetivo:"el precio de cierre en UF por m²", horizonte:0, unidad:"días", etiquetas:"si", historia:48, filas:25000, tasa:0, interp:"alta", latencia:"real", volumen:0, valor:0, costo:0, lift:2},
   "Fuga de clientes": {titulo:"Fuga de clientes en telecom", problema:"Cada mes cancela cerca del 3% de los clientes pospago y el equipo de retención llama sin priorizar.", decision:"ofrecer un beneficio de retención", tipo:"binaria", entidad:"cliente", objetivo:"cancele su contrato", horizonte:60, unidad:"días", etiquetas:"si", historia:36, filas:1800000, tasa:3, interp:"media", latencia:"batch", volumen:50000, valor:180, costo:15, lift:3.5},
   "Demanda": {titulo:"Demanda semanal por tienda", problema:"Hay quiebres de stock en productos de alta rotación y sobrestock en otros; la reposición se decide a ojo.", decision:"definir el pedido de reposición", tipo:"pronostico", entidad:"producto-tienda", objetivo:"unidades vendidas", horizonte:4, unidad:"semanas", etiquetas:"si", historia:30, filas:2400000, tasa:0, interp:"media", latencia:"batch", volumen:20000, valor:0, costo:0, lift:2},
   "Fraude": {titulo:"Fraude en pagos con tarjeta", problema:"Las pérdidas por fraude crecieron 40% este año y las reglas actuales bloquean demasiadas compras legítimas.", decision:"bloquear o pedir verificación del pago", tipo:"binaria", entidad:"transacción", objetivo:"sea fraudulenta", horizonte:0, unidad:"minutos", etiquetas:"parcial", historia:18, filas:40000000, tasa:0.2, interp:"alta", latencia:"real", volumen:2000000, valor:250, costo:4, lift:6},
@@ -234,9 +237,9 @@ const EXAMPLES = {
   "Tiempo de entrega": {titulo:"Tiempo de entrega de pedidos", problema:"El 22% de los pedidos llega después de la fecha prometida y genera reclamos.", decision:"prometer una fecha de entrega realista", tipo:"regresion", entidad:"pedido", objetivo:"los días hasta la entrega", horizonte:0, unidad:"días", etiquetas:"si", historia:12, filas:900000, tasa:0, interp:"media", latencia:"real", volumen:0, valor:0, costo:0, lift:2}
 };
 
-const STORE_KEY = "problema-a-modelo:v1";
-let state = {...EXAMPLES["Fuga de clientes"]};
-let activeExample = "Fuga de clientes";
+const STORE_KEY = "problema-a-modelo:v2";
+let state = {...EXAMPLES["Leads de compradores"]};
+let activeExample = "Leads de compradores";
 try { const s = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (s && s.state) { state = {...state, ...s.state}; activeExample = s.example || null; } } catch(e) {}
 
 const $ = id => document.getElementById(id);
@@ -291,7 +294,7 @@ function build(s){
     multiclase:`Para cada <em>${esc(ent)}</em>, predecir <em>${esc(obj)}</em> entre un conjunto cerrado de categorías, para <em>${esc(dec)}</em>.`,
     regresion: `Para cada <em>${esc(ent)}</em>, estimar <em>${esc(obj)}</em> ${H}, para <em>${esc(dec)}</em>.`,
     pronostico:`Para cada <em>${esc(ent)}</em>, pronosticar <em>${esc(obj)}</em> por período ${H}, para <em>${esc(dec)}</em>.`,
-    ranking:   `Ordenar cada <em>${esc(ent)}</em> según la probabilidad de que <em>${esc(obj)}</em> ${H}, para elegir a quién <em>${esc(dec)}</em> primero.`,
+    ranking:   `Ordenar cada <em>${esc(ent)}</em> según la probabilidad de que <em>${esc(obj)}</em> ${H}, para decidir el orden en que se va a <em>${esc(dec)}</em>.`,
     anomalia:  `Puntuar cada <em>${esc(ent)}</em> según cuánto se aleja de lo normal (<em>${esc(obj)}</em>), para decidir si <em>${esc(dec)}</em>.`,
     segmentos: `Agrupar cada <em>${esc(ent)}</em> en segmentos homogéneos según <em>${esc(obj)}</em>, para <em>${esc(dec)}</em>.`,
     uplift:    `Para cada <em>${esc(ent)}</em>, estimar cuánto cambia la probabilidad de que <em>${esc(obj)}</em> ${H} si se decide <em>${esc(dec)}</em>, frente a no hacerlo.`
@@ -377,7 +380,13 @@ function build(s){
   // Features
   const e = (ent||"").toLowerCase();
   let feats;
-  if (/transac|pago|compra|tarjeta/.test(e)) feats = [
+  if (/propiedad|inmueble|depto|departamento|casa/.test(e)) feats = [
+    ["Atributos", "m², dormitorios, baños, estacionamiento, bodega, antigüedad"], ["Ubicación", "comuna, distancia al metro, colegios y servicios"],
+    ["Precio frente al mercado", "UF/m² frente a comparables de la zona, rebajas aplicadas"], ["Actividad de la publicación", "vistas, contactos y visitas en los últimos 7 y 30 días; días publicada"]];
+  else if (/lead|prospecto|interesado/.test(e)) feats = [
+    ["Origen", "portal, red social, referido, campaña"], ["Interés", "propiedades vistas, rango de precio, comunas buscadas"],
+    ["Respuesta", "tiempo hasta el primer contacto, n.º de interacciones, visitas agendadas"], ["Capacidad de compra", "preaprobación de crédito, pie disponible, propiedad por vender"]];
+  else if (/transac|pago|compra|tarjeta/.test(e)) feats = [
     ["Monto y contexto", "monto vs. promedio del titular, comercio, canal, país"], ["Velocidad", "n.º de transacciones en la última hora / 24 h"],
     ["Dispositivo y ubicación", "dispositivo nuevo, distancia a la ubicación habitual"], ["Historia del titular", "antigüedad, contracargos previos"]];
   else if (/produc|tienda|sku|local|sucursal/.test(e)) feats = [
